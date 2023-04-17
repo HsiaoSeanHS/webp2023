@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>景點觀光展覽資訊</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    #pageInfo {
+      margin-top: 10px;
+    }
+    #countInfo {
+      margin-top: 10px;
+    }
+    #searchInput {
+      margin-right: 10px;
+    }
+    #searchBtn, #prevBtn, #nextBtn {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      margin: 4px 2px;
+      cursor: pointer;
+    }
+    #searchBtn:hover, #prevBtn:hover, #nextBtn:hover {
+      background-color: #3e8e41;
+    }
+  </style>
+</head>
+<body>
+  <h1>景點觀光展覽資訊</h1>
+  <div>
+    <input type="text" id="searchInput" placeholder="輸入關鍵字">
+    <button id="searchBtn">搜尋</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>名稱</th>
+        <th>地點</th>
+        <th>票價</th>
+      </tr>
+    </thead>
+    <tbody id="csie">
+    </tbody>
+  </table>
+  <div id="pageInfo"></div>
+  <div id="countInfo"></div>
+  <div>
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+  </div>
+  <script>
+    const itemsPerPage = 10;
+    let movieData = [];
+    let filteredData = [];
+    let currentPage = 1;
+    const tableBody = document.getElementById("csie");
+    const pageInfo = document.getElementById("pageInfo");
+    const countInfo = document.getElementById("countInfo");
+    const searchInput = document.getElementById("searchInput");
+
+    function updatePageInfo() {
+      const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+      let currentPageInfo = '';
+      if (filteredData.length > 0) {
+        currentPageInfo = `第 ${currentPage} 頁 / 共 ${totalPages} 頁`;
+      } else {
+        currentPageInfo = `第 ${currentPage} 頁 / 共 ${Math.ceil(movieData.length / itemsPerPage)} 頁`;
+      }
+      pageInfo.innerHTML = currentPageInfo;
+    }
+
+    function renderTableData(data, page = 1) {
+      tableBody.innerHTML = '';
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const pageData = data.slice(startIndex, endIndex);
+      pageData.forEach(function (data, index) {
+        const row = tableBody.insertRow(-1);
+        row.insertCell(0).innerHTML = data['title'];
+        row.insertCell(1).innerHTML = data['showInfo'][0]['location'];
+        row.insertCell(2).innerHTML = data['showInfo'][0]['price'];
+      });
+      updatePageInfo();
+    }
+
+    function handleApiResponse() {
+      if (this.readyState == 4 && this.status == 200) {
+        movieData = JSON.parse(this.responseText);
+        renderTableData(movieData);
+      }
+    }
+
+    function searchByTitle() {
+      const keyword = searchInput.value.toLowerCase();
+      filteredData = movieData.filter(function (data) {
+        return data.title.toLowerCase().indexOf(keyword) > -1;
+      });
+      currentPage = 1;
+      renderTableData(filteredData, currentPage);
+      countInfo.innerHTML = `共有 ${filteredData.length} 筆符合搜尋結果`;
+      updatePageInfo();
+    }
+
+    function nextPage() {
+      const data = filteredData.length > 0 ? filteredData : movieData;
+      if (currentPage < Math.ceil(data.length / itemsPerPage)) {
+        currentPage++;
+        renderTableData(data, currentPage);
+      }
+    }
+
+    function prevPage() {
+      const data = filteredData.length > 0 ? filteredData : movieData;
+      if (currentPage > 1) {
+        currentPage--;
+        renderTableData(data, currentPage);
+      }
+    }
+
+    document.getElementById("searchBtn").addEventListener("click", searchByTitle);
+    document.getElementById("nextBtn").addEventListener("click", nextPage);
+    document.getElementById("prevBtn").addEventListener("click", prevPage);
+
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = handleApiResponse;
+    xhr.open("GET", "https://cloud.culture.tw/frontsite/trans/SearchShowAction.do?method=doFindTypeJ&category=6", true);
+    xhr.send();
+    </script>
+  </body>
+ </html>
